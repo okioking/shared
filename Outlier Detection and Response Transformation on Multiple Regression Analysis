@@ -1,0 +1,108 @@
+# Outlier Detection and Response Transformation on Multiple Regression Analysis
+# Import Data
+pdam <- read.table(file="d:/datauts.txt",header=TRUE)
+head(pdam)
+
+# Univariate Exploratory Analysis
+summary(pdam)
+sd(pdam$tarif)
+sd(pdam$vol_prod)
+sd(pdam$rek_air)
+sd(pdam$pegawai)
+sd(pdam$konsumsi_air)
+
+# Outlier based on predictors
+scaled_pdam <- data.frame(scale(pdam))
+head(scaled_pdam)
+boxplot(scaled_pdam$tarif, scaled_pdam$vol_prod, scaled_pdam$rek_air, scaled_pdam$pegawai, scaled_pdam$konsumsi_air)
+
+
+# Linear Regression Model
+x = cbind(1, pdam$vol_prod ,pdam$rek_air, pdam$pegawai, pdam$konsumsi_air)
+X = as.matrix(x)
+y = pdam$tarif
+Y = as.matrix(y)
+beta = solve(t(X)%*%X)%*%(t(X)%*%Y)
+beta
+Yhat = X%*%beta
+res = Y - Yhat
+
+# Regresi Berganda
+library(MASS)
+model_pdam <- lm(pdam$tarif~pdam$vol_prod+pdam$rek_air+pdam$pegawai+pdam$konsumsi_air)
+summary(model_pdam)
+ 
+
+# Asumsi Klasik
+# Normalitas
+scaled_res = scale(res)
+h <- hist(scaled_res, breaks=10, col="yellow", xlab="Standardized Residuals", main="Histogram of Standardized Res with Normal Curve")
+xfit <- seq(min(scaled_res),max(scaled_res),length=40)
+yfit <- dnorm(xfit,mean=mean(scaled_res),sd=sd(scaled_res))
+yfit <- yfit*diff(h$mids[1:2])*length(scaled_res)
+lines(xfit, yfit, col="blue", lwd=2)
+
+ks.test(res, pnorm, mean(res), sd(res))
+
+# Multikolinieritas
+install.packages('mctest')
+library(mctest)
+x.m = as.matrix(cbind(pdam$vol_prod ,pdam$rek_air, pdam$pegawai, pdam$konsumsi_air))
+y.m = pdam$tarif
+imcdiag(x.m,y.m)
+	# Re-modelling with deleted variabel that VIF > 10
+	model_mul1 <- lm(pdam$tarif~pdam$rek_air+pdam$pegawai+pdam$konsumsi_air)
+	summary(model_mul1)
+	model_mul2 <- lm(pdam$tarif~pdam$vol_prod++pdam$pegawai+pdam$konsumsi_air)
+	summary(model_mul2)
+
+# Autokorelasi
+install.packages('car')
+library(car)
+durbinWatsonTest(model_pdam)
+
+# Heteroskedastisitas - Goldfeld-Quandt
+install.packages('AER')
+library(AER)
+gqtest(model_pdam)
+
+# Diagnostics
+# Multiple Regression with deleted High Leverage
+plot(model_pdam$res, ylab="Residuals", main="Index Plot of Residuals")
+sort(model_pdam$res[c(1,101)])
+m <- model.matrix(model_pdam)
+lev <- hat(m)
+plot(lev, ylab="Leverages", ,main="Index plot of Leverages")
+text(lev, labels=c(1:101))
+abline(h=2*4/101)
+sum(lev)
+lev[lev>(2*4/101)]
+	# Remodelling with deleted Obs > h
+	pdam_lev=(pdam[-c(2,3,4,6,8,16,18,78,80,92),])
+	length(pdam_lev$tarif)
+	model_lev <- lm(tarif~vol_prod+rek_air+pegawai+konsumsi_air, data=pdam_lev)
+	summary(model_lev)
+
+# Multiple Regression with deleted Outlier - Exernally Studentized Residuals
+jack <- rstudent(model_pdam)
+t.table=qt((0.05/2),101-4-1)
+plot(jack,ylab="Jackknife Residuals", main="Jackknife Residuals")
+abline(h=c(-1.984,1.984), col='blue')
+identify(jack)
+	# Remodelling with deleted ti > t.tabel
+	pdam_jack=(pdam[-c(2,7,15,55),])
+	length(pdam_jack$tarif)
+	model_jack <- lm(tarif~vol_prod+rek_air+pegawai+konsumsi_air, data=pdam_jack)
+	summary(model_jack)
+				
+# Multiple Regression with deleted Influences Observation - Cook's Distances
+cd <- cooks.distance(model_pdam)
+f.table=qf(0.05,4,97)
+plot(cd, ylab="Cook Distances", main="Cook's Distances")
+abline(h=c(f.table),col='red')
+identify(cd)
+	# Remodelling with deleted cd > F.tabel
+	pdam_cooks2=(pdam[-c(2,3,92),])
+	length(pdam_cooks2$tarif)
+	model_cooks2 <- lm(tarif~vol_prod+rek_air+pegawai+konsumsi_air, data=pdam_cooks2)
+	summary(model_cooks2)
