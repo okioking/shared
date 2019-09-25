@@ -1,0 +1,32 @@
+"""
+Convert stata files (.dta) into csv files (.csv) with Python
+"""
+
+#### single file ####
+import os
+import pandas as pd
+
+os.chdir(r'file dir')
+filename = pd.io.stata.read_stata('filename.dta')
+
+os.chdir(r'file dir')
+filename.to_csv('filename.csv')
+
+#### multiple files with for loop ####
+import pandas as pd
+import glob
+import os
+
+os.chdir(r'C:\Users\OKI\Downloads\Compressed\Book 5')
+# get file names for each file in the directory
+path = r'file dir' 
+all_files = glob.glob(path + "/*.dta")
+
+# create dictionary with multiple dataframes inside
+d = {}
+for filename in all_files:
+    d[filename] = pd.io.stata.read_stata(filename)
+ 
+# export multiple dataframes into multiple csv file    
+for filenamename in d:
+    d[filename].to_csv(filename[:-3]+'csv')
