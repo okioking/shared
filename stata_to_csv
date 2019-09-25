@@ -17,7 +17,7 @@ import pandas as pd
 import glob
 import os
 
-os.chdir(r'C:\Users\OKI\Downloads\Compressed\Book 5')
+os.chdir(r'file dir')
 # get file names for each file in the directory
 path = r'file dir' 
 all_files = glob.glob(path + "/*.dta")
